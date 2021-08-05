@@ -19,4 +19,5 @@ from app import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('stud/', views.UserView.as_view()),
+    path('vali/', views.validate.as_view()),
 ]

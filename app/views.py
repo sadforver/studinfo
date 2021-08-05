@@ -79,7 +79,7 @@ class UserView(APIView):
                 else:
                     if sort=="studentId":
                         if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student order by "studentId" limit %s offset %s'
+                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student order by %s limit %s offset %s'
                             data = Sqlca.execute(sql, [results,product])
                         else:
                             sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student  order by "studentId" desc limit %s offset %s'
@@ -98,7 +98,7 @@ class UserView(APIView):
                     count = Sqlca.execute(sql, [])[0]['count']
             rtn={'code':1000,'message':'获取成功','data':data,'count':count}
         except Exception as e:
-            rtn = {'code': 1001, 'message': '获取失败', 'data': {}}
+            rtn = {'code': 1001, 'message': '获取失败'+str(e), 'data': {}}
 
         return Response(rtn)
     def post(self,request):
@@ -137,5 +137,17 @@ class UserView(APIView):
         except Exception as errordetail:
             rtn = {'code': 1001, 'message': '删除失败，失败的原因：'+str(errordetail), 'data': {}}
         return Response(rtn)
+class validate(APIView):
+    def get(self,request):
+        try:
+            stuId=request.query_params['studentId']
+            print(stuId)
+            sql='select count(gender) from student where "studentId"=%s'
+            count = Sqlca.execute(sql, [stuId])[0]['count']
+            print(count)
 
+            rtn={'code':1000,'message':'获取成功','count':count}
+        except Exception as errordetail:
+            rtn = {'code': 1001, 'message': '获取验证失败，失败的原因：' + str(errordetail)}
+        return Response(rtn)
 # Create your views here.
