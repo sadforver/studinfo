@@ -1,3 +1,5 @@
+
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from studinfo.rawsql import Sqlca
@@ -12,88 +14,52 @@ class UserView(APIView):
             product=int(results)*(int(page)-1)
             gender = request.GET.get('gender')
             studentType = request.GET.get('studentType')
+            searchTerm=request.GET.get('searchTerm')
+            print(searchTerm)
+            if searchTerm:
+                if searchTerm.isdigit():
+                    searchSen=' where "studentId" ~ '+'\''+str(searchTerm)+'\''
+                else:
+                    searchSen=' where "studentName" ~ '+'\''+str(searchTerm)+'\''
+            else:
+                searchSen = ''
+            print(searchSen)
             sort=request.GET.get('sortField')
+            print(sort)
+            sortnow='\"'+sort+'\"'
+            print(sortnow)
             order=request.GET.get('sortOrder')
+            if order=='ascend':
+                order='asc'
+                orderTerm=' order by '+sortnow+' '+order
+            elif order=='descend':
+                order='desc'
+                orderTerm = ' order by ' + sortnow + ' ' + order
+            else:
+                orderTerm=''
             if studentType !='null' and studentType :
                 if gender!='null' and gender:
-                    if sort == 'studentId':
-                        if order == 'ascend':
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s  order by "studentId" limit %s offset %s'
-                            data = Sqlca.execute(sql,[studentType, gender,results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s order by "studentId" desc limit %s offset %s'
-                            data = Sqlca.execute(sql,[studentType, gender,results,product])
-                    elif sort == 'schoolYear':
-                        if order == 'ascend':
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s order by "schoolYear" limit %s offset %s'
-                            data = Sqlca.execute(sql, [studentType, gender,results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s order by "schoolYear" desc limit %s offset %s'
-                            data = Sqlca.execute(sql, [studentType, gender,results,product])
-                    else:
-                        sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s limit %s offset %s'
-                        data = Sqlca.execute(sql, [studentType, gender,results,product])
+                    sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
+                    print(sql)
+                    data = Sqlca.execute(sql, [studentType, gender,results,product])
                     sql='select count(gender) from student  where "studentType"= %s and gender=%s '
                     count=Sqlca.execute(sql,[studentType, gender])[0]['count']
                 else:
-                    if sort=="studentId":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s order by "studentId" limit %s offset %s '
-                            data = Sqlca.execute(sql, [studentType,results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s order by "studentId" desc limit %s offset %s '
-                            data = Sqlca.execute(sql, [studentType,results,product])
-                    elif sort=="schoolYear":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s order by "schoolYear" limit %s offset %s '
-                            data = Sqlca.execute(sql, [studentType,results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s  order by "schoolYear" desc limit %s offset %s '
-                            data = Sqlca.execute(sql, [studentType,results,product])
-                    else:
-                        sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s limit %s  offset %s'
-                        data = Sqlca.execute(sql, [studentType,results,product])
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
+                    data = Sqlca.execute(sql, [studentType,results,product])
                     sql = 'select count(gender) from student  where "studentType"= %s '
                     count = Sqlca.execute(sql, [studentType])[0]['count']
             else:
                 if gender!='null' and gender:
-                    if sort=="studentId":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s order by "studentId" limit %s offset %s'
-                            data = Sqlca.execute(sql, [gender,results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s order by "studentId" desc limit %s offset %s'
-                            data = Sqlca.execute(sql, [gender, results,product])
-                    elif sort=="schoolYear":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s order by "schoolYear" limit %s offset %s'
-                            data = Sqlca.execute(sql, [gender, results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s order by "schoolYear" desc limit %s offset %s'
-                            data = Sqlca.execute(sql, [gender, results,product])
-                    else:
-                        sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s limit %s offset %s'
-                        data = Sqlca.execute(sql, [gender,results,product])
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
+                    data = Sqlca.execute(sql, [gender,results,product])
                     sql = 'select count(gender) from student  where  gender=%s '
                     count = Sqlca.execute(sql, [ gender])[0]['count']
                 else:
-                    if sort=="studentId":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student order by %s limit %s offset %s'
-                            data = Sqlca.execute(sql, [results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student  order by "studentId" desc limit %s offset %s'
-                            data = Sqlca.execute(sql, [results,product])
-                    elif sort=="schoolYear":
-                        if order=="ascend":
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student order by "schoolYear" limit %s offset %s '
-                            data = Sqlca.execute(sql, [results,product])
-                        else:
-                            sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student order by "schoolYear" desc limit %s offset %s'
-                            data = Sqlca.execute(sql, [results,product])
-                    else:
-                        sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student limit %s offset %s '
-                        data = Sqlca.execute(sql, [results,product])
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student '+searchSen+orderTerm+' limit %s offset %s'
+                    print(sql)
+                    data = Sqlca.execute(sql, [results,product])
+                    print((data))
                     sql = 'select count(gender) from student'
                     count = Sqlca.execute(sql, [])[0]['count']
             rtn={'code':1000,'message':'获取成功','data':data,'count':count}
@@ -109,8 +75,8 @@ class UserView(APIView):
         try:
             r=Sqlca.execute(sql,[data['studentId'],data['studentName'],data['gender'],data['schoolYear'],data['telephone'],data['email'],data['studentType'],data['idNo'],password])
             rtn = {'code': 1000, 'message': '新增成功', 'data': data,}
-        except Exception as errordetail:
-            rtn = {'code': 1001, 'message': '新增失败，失败的详细原因: ' + str(errordetail), 'data': {}}
+        except Exception as errorDetail:
+            rtn = {'code': 1001, 'message': '新增失败，失败的详细原因: ' + str(errorDetail), 'data': {}}
         return Response(rtn)
 
     def put(self, request):
@@ -123,8 +89,8 @@ class UserView(APIView):
                            data['studentType'], data['idNo'], data['studentId']])
 
             rtn = {'code': 1000, 'message': '更新成功', 'data': data}
-        except Exception as errordetail:
-            rtn = {'code': 1001, 'message': '更新失败，失败的详细原因:'+str(errordetail), 'data': {}}
+        except Exception as errorDetail:
+            rtn = {'code': 1001, 'message': '更新失败，失败的详细原因:'+str(errorDetail), 'data': {}}
         return Response(rtn)
 
     def delete(self, request):
@@ -134,8 +100,8 @@ class UserView(APIView):
             Sqlca.execute(sql, [studentId])
             print('yep')
             rtn = {'code': 1000, 'message': '删除成功', 'data': {}}
-        except Exception as errordetail:
-            rtn = {'code': 1001, 'message': '删除失败，失败的原因：'+str(errordetail), 'data': {}}
+        except Exception as errorDetail:
+            rtn = {'code': 1001, 'message': '删除失败，失败的原因：'+str(errorDetail), 'data': {}}
         return Response(rtn)
 class validate(APIView):
     def get(self,request):
@@ -147,7 +113,7 @@ class validate(APIView):
             print(count)
 
             rtn={'code':1000,'message':'获取成功','count':count}
-        except Exception as errordetail:
-            rtn = {'code': 1001, 'message': '获取验证失败，失败的原因：' + str(errordetail)}
+        except Exception as errorDetail:
+            rtn = {'code': 1001, 'message': '获取验证失败，失败的原因：' + str(errorDetail)}
         return Response(rtn)
 # Create your views here.
