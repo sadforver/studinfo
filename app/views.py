@@ -16,13 +16,16 @@ class UserView(APIView):
             studentType = request.GET.get('studentType')
             searchTerm=request.GET.get('searchTerm')
             print(searchTerm)
-            if searchTerm:
+            if searchTerm!='null' and searchTerm:
                 if searchTerm.isdigit():
-                    searchSen=' where "studentId" ~ '+'\''+str(searchTerm)+'\''
+                    searchSen='and "studentId" ~ '+'\''+str(searchTerm)+'\''
+                    nosearchSen=' where "studentId" ~ '+'\''+str(searchTerm)+'\''
                 else:
-                    searchSen=' where "studentName" ~ '+'\''+str(searchTerm)+'\''
+                    searchSen=' and "studentName" ~ '+'\''+str(searchTerm)+'\''
+                    nosearchSen = ' where "studentName" ~ ' + '\'' + str(searchTerm) + '\''
             else:
                 searchSen = ''
+                nosearchSen =''
             print(searchSen)
             sort=request.GET.get('sortField')
             print(sort)
@@ -42,25 +45,28 @@ class UserView(APIView):
                     sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
                     print(sql)
                     data = Sqlca.execute(sql, [studentType, gender,results,product])
-                    sql='select count(gender) from student  where "studentType"= %s and gender=%s '
+                    sql='select count(gender) from student  where "studentType"= %s and gender=%s '+searchSen
                     count=Sqlca.execute(sql,[studentType, gender])[0]['count']
                 else:
                     sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
+                    print(sql)
                     data = Sqlca.execute(sql, [studentType,results,product])
-                    sql = 'select count(gender) from student  where "studentType"= %s '
+                    sql = 'select count(gender) from student  where "studentType"= %s '+searchSen
                     count = Sqlca.execute(sql, [studentType])[0]['count']
             else:
                 if gender!='null' and gender:
+                    print('hh')
                     sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
+                    print(sql)
                     data = Sqlca.execute(sql, [gender,results,product])
-                    sql = 'select count(gender) from student  where  gender=%s '
+                    sql = 'select count(gender) from student  where  gender=%s '+searchSen
                     count = Sqlca.execute(sql, [ gender])[0]['count']
                 else:
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student '+searchSen+orderTerm+' limit %s offset %s'
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student '+nosearchSen+orderTerm+' limit %s offset %s'
                     print(sql)
                     data = Sqlca.execute(sql, [results,product])
                     print((data))
-                    sql = 'select count(gender) from student'
+                    sql = 'select count(gender) from student'+nosearchSen
                     count = Sqlca.execute(sql, [])[0]['count']
             rtn={'code':1000,'message':'获取成功','data':data,'count':count}
         except Exception as e:
