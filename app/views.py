@@ -1,5 +1,4 @@
-
-
+from django.core.files.storage import default_storage
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from studinfo.rawsql import Sqlca
@@ -42,13 +41,13 @@ class UserView(APIView):
                 orderTerm=''
             if studentType !='null' and studentType :
                 if gender!='null' and gender:
-                    sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
+                    sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
                     print(sql)
                     data = Sqlca.execute(sql, [studentType, gender,results,product])
                     sql='select count(gender) from student  where "studentType"= %s and gender=%s '+searchSen
                     count=Sqlca.execute(sql,[studentType, gender])[0]['count']
                 else:
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
                     print(sql)
                     data = Sqlca.execute(sql, [studentType,results,product])
                     sql = 'select count(gender) from student  where "studentType"= %s '+searchSen
@@ -56,13 +55,13 @@ class UserView(APIView):
             else:
                 if gender!='null' and gender:
                     print('hh')
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
                     print(sql)
                     data = Sqlca.execute(sql, [gender,results,product])
                     sql = 'select count(gender) from student  where  gender=%s '+searchSen
                     count = Sqlca.execute(sql, [ gender])[0]['count']
                 else:
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo"  from student '+nosearchSen+orderTerm+' limit %s offset %s'
+                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl"  from student '+nosearchSen+orderTerm+' limit %s offset %s'
                     print(sql)
                     data = Sqlca.execute(sql, [results,product])
                     print((data))
@@ -79,7 +78,7 @@ class UserView(APIView):
         print(password)
         sql='INSERT INTO student ("studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo",password) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
         try:
-            r=Sqlca.execute(sql,[data['studentId'],data['studentName'],data['gender'],data['schoolYear'],data['telephone'],data['email'],data['studentType'],data['idNo'],password])
+            data=Sqlca.execute(sql,[data['studentId'],data['studentName'],data['gender'],data['schoolYear'],data['telephone'],data['email'],data['studentType'],data['idNo'],password])
             rtn = {'code': 1000, 'message': '新增成功', 'data': data,}
         except Exception as errorDetail:
             rtn = {'code': 1001, 'message': '新增失败，失败的详细原因: ' + str(errorDetail), 'data': {}}
@@ -122,4 +121,20 @@ class validate(APIView):
         except Exception as errorDetail:
             rtn = {'code': 1001, 'message': '获取验证失败，失败的原因：' + str(errorDetail)}
         return Response(rtn)
+class photo(APIView):
+    def post(self,request):
+        try:
+            stuId=request.data['studentId']
+            print(stuId)
+            file=request.FILES['avatar']
+            file_name=default_storage.save(file.name,file)
+
+            avatar='http://127.0.0.1:8000/media/'+file_name
+            sql = 'update student set "avatarUrl"=%s where "studentId"=%s '
+            data = Sqlca.execute(sql, [avatar, stuId])
+            rtn = {'code': 1000, 'message': '上传成功', 'data': data}
+        except Exception as errorDetail:
+            rtn = {'code': 1001, 'message': '上传失败，失败的原因：' + str(errorDetail)}
+        return Response(rtn)
+
 # Create your views here.
