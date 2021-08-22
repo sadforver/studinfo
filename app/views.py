@@ -1,77 +1,123 @@
+from django.core import paginator
 from django.core.files.storage import default_storage
+from django.core.paginator import Paginator
+from django.template.defaultfilters import lower
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from studinfo.rawsql import Sqlca
-
-
+from .models import Student
+from .serialize import StudSerializer
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
 
 class UserView(APIView):
-    def get(self, request ):
+    def get(self,request):
         try:
-            results=request.GET.get('results')
-            page=request.GET.get('page')
-            product=int(results)*(int(page)-1)
-            gender = request.GET.get('gender')
-            studentType = request.GET.get('studentType')
+            pageSize=int(request.GET.get('results'))
+            pageIndex=int(request.GET.get('page'))
+            Gender = request.GET.get('gender')
+            StudentType = request.GET.get('studentType')
             searchTerm=request.GET.get('searchTerm')
-            print(searchTerm)
-            if searchTerm!='null' and searchTerm:
-                if searchTerm.isdigit():
-                    searchSen='and "studentId" ~ '+'\''+str(searchTerm)+'\''
-                    nosearchSen=' where "studentId" ~ '+'\''+str(searchTerm)+'\''
-                else:
-                    searchSen=' and "studentName" ~ '+'\''+str(searchTerm)+'\''
-                    nosearchSen = ' where "studentName" ~ ' + '\'' + str(searchTerm) + '\''
-            else:
-                searchSen = ''
-                nosearchSen =''
-            print(searchSen)
-            sort=request.GET.get('sortField')
-            print(sort)
-            sortnow='\"'+sort+'\"'
-            print(sortnow)
+            sort = request.GET.get('sortField')
             order=request.GET.get('sortOrder')
-            if order=='ascend':
-                order='asc'
-                orderTerm=' order by '+sortnow+' '+order
-            elif order=='descend':
-                order='desc'
-                orderTerm = ' order by ' + sortnow + ' ' + order
+            if order=='descend':
+                sort='-'+sort
+            print(sort)
+            if Gender and StudentType:
+                q = Q(gender=Gender) & Q(studentType=StudentType)
+            elif Gender or StudentType:
+                q= Q(gender=Gender) | Q(studentType=StudentType)
             else:
-                orderTerm=''
-            if studentType !='null' and studentType :
-                if gender!='null' and gender:
-                    sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
-                    print(sql)
-                    data = Sqlca.execute(sql, [studentType, gender,results,product])
-                    sql='select count(gender) from student  where "studentType"= %s and gender=%s '+searchSen
-                    count=Sqlca.execute(sql,[studentType, gender])[0]['count']
-                else:
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
-                    print(sql)
-                    data = Sqlca.execute(sql, [studentType,results,product])
-                    sql = 'select count(gender) from student  where "studentType"= %s '+searchSen
-                    count = Sqlca.execute(sql, [studentType])[0]['count']
+                q=Q()
+            print(q)
+            if searchTerm!='null' and searchTerm!=None:
+                s=Q(studentId__contains=searchTerm)|Q(studentName__contains=searchTerm)
             else:
-                if gender!='null' and gender:
-                    print('hh')
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
-                    print(sql)
-                    data = Sqlca.execute(sql, [gender,results,product])
-                    sql = 'select count(gender) from student  where  gender=%s '+searchSen
-                    count = Sqlca.execute(sql, [ gender])[0]['count']
-                else:
-                    sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl"  from student '+nosearchSen+orderTerm+' limit %s offset %s'
-                    print(sql)
-                    data = Sqlca.execute(sql, [results,product])
-                    print((data))
-                    sql = 'select count(gender) from student'+nosearchSen
-                    count = Sqlca.execute(sql, [])[0]['count']
-            rtn={'code':1000,'message':'获取成功','data':data,'count':count}
+                s=Q()
+            if order!='null'and order!=None:
+                studentList=Student.objects.filter(q,s).order_by(sort).values('studentId','studentName','gender','schoolYear','telephone','email','studentType','idNo','avatarUrl')
+            else:
+                studentList = Student.objects.filter(q,s).order_by().values('studentId', 'studentName', 'gender','schoolYear', 'telephone', 'email','studentType', 'idNo', 'avatarUrl')
+            print(studentList)
+            total= len(studentList)
+            paginator=Paginator(studentList,pageSize)
+            page=paginator.get_page(pageIndex).object_list
+            print(page)
+            things=list(page)
+            print(things)
+            rtn={'code':1000,'message':'获取成功','data':things,'count':total}
         except Exception as e:
             rtn = {'code': 1001, 'message': '获取失败'+str(e), 'data': {}}
-
         return Response(rtn)
+
+
+
+    # def get(self, request ):
+    #     try:
+    #         pageSize=int(request.GET.get('results'))
+    #         pageIndex=int(request.GET.get('page'))
+    #         product=pageSize*(pageIndex-1)
+    #         gender = request.GET.get('gender')
+    #         studentType = request.GET.get('studentType')
+    #         searchTerm=request.GET.get('searchTerm')
+    #         print(searchTerm)
+    #         if searchTerm!='null' and searchTerm:
+    #             if searchTerm.isdigit():
+    #                 searchSen='and "studentId" ~ '+'\''+str(searchTerm)+'\''
+    #                 nosearchSen=' where "studentId" ~ '+'\''+str(searchTerm)+'\''
+    #             else:
+    #                 searchSen=' and "studentName" ~ '+'\''+str(searchTerm)+'\''
+    #                 nosearchSen = ' where "studentName" ~ ' + '\'' + str(searchTerm) + '\''
+    #         else:
+    #             searchSen = ''
+    #             nosearchSen =''
+    #         print(searchSen)
+    #         sort=request.GET.get('sortField')
+    #         print(sort)
+    #         sortnow='\"'+sort+'\"'
+    #         print(sortnow)
+    #         order=request.GET.get('sortOrder')
+    #         if order=='ascend':
+    #             order='asc'
+    #             orderTerm=' order by '+sortnow+' '+order
+    #         elif order=='descend':
+    #             order='desc'
+    #             orderTerm = ' order by ' + sortnow + ' ' + order
+    #         else:
+    #             orderTerm=''
+    #         if studentType !='null' and studentType :
+    #             if gender!='null' and gender:
+    #                 sql='select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s and gender=%s '+searchSen+orderTerm+' limit %s offset %s'
+    #                 print(sql)
+    #                 data = Sqlca.execute(sql, [studentType, gender,pageSize,product])
+    #                 sql='select count(gender) from student  where "studentType"= %s and gender=%s '+searchSen
+    #                 count=Sqlca.execute(sql,[studentType, gender])[0]['count']
+    #             else:
+    #                 sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where "studentType"= %s '+searchSen+orderTerm+' limit %s offset %s '
+    #                 print(sql)
+    #                 data = Sqlca.execute(sql, [studentType,pageSize,product])
+    #                 sql = 'select count(gender) from student  where "studentType"= %s '+searchSen
+    #                 count = Sqlca.execute(sql, [studentType])[0]['count']
+    #         else:
+    #             if gender!='null' and gender:
+    #                 print('hh')
+    #                 sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl" from student where gender= %s '+searchSen+orderTerm+' limit %s offset %s'
+    #                 print(sql)
+    #                 data = Sqlca.execute(sql, [gender,pageSize,product])
+    #                 sql = 'select count(gender) from student  where  gender=%s '+searchSen
+    #                 count = Sqlca.execute(sql, [ gender])[0]['count']
+    #             else:
+    #                 sql = 'select "studentId","studentName",gender,"schoolYear",telephone,email,"studentType","idNo","avatarUrl"  from student '+nosearchSen+orderTerm+' limit %s offset %s'
+    #                 print(sql)
+    #                 data = Sqlca.execute(sql, [pageSize,product])
+    #                 print((data))
+    #                 sql = 'select count(gender) from student'+nosearchSen
+    #                 count = Sqlca.execute(sql, [])[0]['count']
+    #         rtn={'code':1000,'message':'获取成功','data':data,'count':count}
+    #     except Exception as e:
+    #         rtn = {'code': 1001, 'message': '获取失败'+str(e), 'data': {}}
+    #
+    #     return Response(rtn)
     def post(self,request):
         data=request.data
         password=data['idNo'][12:18]
